@@ -130,22 +130,21 @@ generateNeighborIndeces x y =
     offsets
       |> List.map (\(offsetX,offsetY) -> ( (offsetX + x), (offsetY + y) ) )
 
+(?) = flip Maybe.withDefault
+
 generateCounterBoard : Board -> CounterBoard
 generateCounterBoard board =
   let
-    updateCellCount : CoordinateY -> Dict CoordinateY Int -> Dict CoordinateY Int
-    updateCellCount y colCounts =
-      if Dict.member y colCounts then
-        Dict.update y (Maybe.map (\y -> y + 1)) colCounts
-      else
-        Dict.insert y 1 colCounts
+    updateCellCounts : CoordinateY -> Maybe (Dict CoordinateY Int) -> Maybe (Dict CoordinateY Int)
+    updateCellCounts y maybeDict =
+        maybeDict
+          |> Maybe.withDefault (Dict.singleton y 0)
+          |> Dict.update y (\maybeY -> Just ((maybeY ? 0) + 1))
+          |> Just
 
     flagNeighbor : (CoordinateX, CoordinateY) -> CounterBoard -> CounterBoard
     flagNeighbor (x,y) initialCounts =
-      if Dict.member x initialCounts then
-        Dict.update x (Maybe.map (updateCellCount y)) initialCounts
-      else
-        Dict.insert x (Dict.singleton y 1) initialCounts
+      Dict.update x (updateCellCounts y) initialCounts
 
     flagNeighborsForCell : CoordinateX -> CoordinateY -> CounterBoard -> CounterBoard
     flagNeighborsForCell x y initialCounts =
