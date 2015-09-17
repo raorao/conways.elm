@@ -3,6 +3,7 @@ module ConwowsGameOfLaughs where
 import StartApp
 import Effects
 import Html exposing (..)
+import Html.Events exposing (..)
 import Html.Attributes exposing (id, type', for, value, class)
 import Dict exposing (Dict)
 import Set exposing (Set)
@@ -32,7 +33,19 @@ initialModel =
 
 
 update action model =
-  (model, Effects.none)
+  case action.actionType of
+    "Tick" ->
+      let
+        newBoard =
+          generateNextBoard model.board
+
+        newModel =
+          { model | board <- newBoard }
+
+      in
+      (newModel, Effects.none)
+    _    ->
+      (model, Effects.none)
 
 
 app =
@@ -51,7 +64,6 @@ init : (Model, Effects.Effects action)
 init =
   (initialModel, Effects.none)
 
-view : a -> Model -> Html
 view actionDispatcher model =
   let
     foo = "bar"
@@ -90,6 +102,10 @@ view actionDispatcher model =
       [ class "container" ]
       [ h1 [] [text "Tree of Elm Life Dot Biz"]
       , h2 [] [text "its gunna be a billyun dollar company - Srinivas The Great"]
-      , generateRows
+      , generateRows,
+      button [onClick actionDispatcher {actionType = "Tick"} ] [text "Next Generation"]
       ]
 
+generateNextBoard : Board -> Board
+generateNextBoard board =
+  Dict.fromList [ (1, (Set.fromList [0, 1]) ) ]
