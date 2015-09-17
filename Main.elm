@@ -7,6 +7,7 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (id, type', for, value, class)
 import Dict exposing (Dict)
 import Set exposing (Set)
+import Debug
 
 type alias CoordinateX =
   Int
@@ -24,7 +25,10 @@ type alias Model =
 initialBoard : Board
 initialBoard =
     Dict.fromList
-      [ (0, (Set.fromList [0, 1]) ) ]
+      [ (3, (Set.fromList [3]) )
+      , (4, (Set.fromList [4]) )
+      , (5, (Set.fromList [2,3,4]) )
+      ]
 
 
 initialModel : Model
@@ -87,12 +91,12 @@ view actionDispatcher model =
             Just row -> row
             Nothing  -> Set.empty
       in
-        [0..7]
+        [0..30]
           |> List.map (generateCell row)
           |> tr [class "row"]
 
     generateRows =
-      [0..7]
+      [0..30]
         |> List.map (flip Dict.get model.board)
         |> List.map generateRow
         |> table [class "board"]
@@ -106,6 +110,107 @@ view actionDispatcher model =
       button [onClick actionDispatcher {actionType = "Tick"} ] [text "Next Generation"]
       ]
 
+type alias CounterBoard =
+  Dict CoordinateX (Dict CoordinateY Int)
+
+generateNeighborIndeces : CoordinateX -> CoordinateY -> List (CoordinateX, CoordinateY)
+generateNeighborIndeces x y =
+  let
+    offsets =
+      [ (-1,-1)
+      , (-1, 0)
+      , (-1, 1)
+      , (0, -1)
+      , (0, 1)
+      , (1,-1)
+      , (1, 0)
+      , (1, 1)
+      ]
+  in
+    offsets
+      |> List.map (\(offsetX,offsetY) -> ( (offsetX + x), (offsetY + y) ) )
+
+generateCounterBoard : Board -> CounterBoard
+generateCounterBoard board =
+  let
+    updateCellCount : CoordinateY -> Dict CoordinateY Int -> Dict CoordinateY Int
+    updateCellCount y colCounts =
+      if Dict.member y colCounts then
+        Dict.update y (Maybe.map (\y -> y + 1)) colCounts
+      else
+        Dict.insert y 1 colCounts
+
+    flagNeighbor : (CoordinateX, CoordinateY) -> CounterBoard -> CounterBoard
+    flagNeighbor (x,y) initialCounts =
+      if Dict.member x initialCounts then
+        Dict.update x (Maybe.map (updateCellCount y)) initialCounts
+      else
+        Dict.insert x (Dict.singleton y 1) initialCounts
+
+    flagNeighborsForCell : CoordinateX -> CoordinateY -> CounterBoard -> CounterBoard
+    flagNeighborsForCell x y initialCounts =
+      let
+        neighborIndeces =
+          generateNeighborIndeces x y
+      in
+        List.foldr flagNeighbor initialCounts neighborIndeces
+
+    flagNeighborsForRow : CoordinateX -> (Set CoordinateY) -> CounterBoard -> CounterBoard
+    flagNeighborsForRow xIndex row initialCounts =
+      Set.foldr (flagNeighborsForCell xIndex) initialCounts row
+
+  in
+    Dict.foldr flagNeighborsForRow Dict.empty board
+
+
+
 generateNextBoard : Board -> Board
 generateNextBoard board =
-  Dict.fromList [ (1, (Set.fromList [0, 1]) ) ]
+  let
+    checkIsAlive : Set CoordinateY -> (CoordinateY, Int) -> Maybe CoordinateY
+    checkIsAlive aliveYs (y, neighborCount) =
+      if Set.member y aliveYs then
+        if neighborCount == 2 || neighborCount == 3 then
+          Just y
+        else
+          Nothing
+      else
+        if neighborCount == 3 then
+          Just y
+        else
+          Nothing
+
+
+    counterBoard =
+      generateCounterBoard board
+
+
+    updateRow : CoordinateX -> Set CoordinateY -> Set CoordinateY
+    updateRow x aliveYs =
+      counterBoard
+        |> Dict.get x
+        |> Maybe.withDefault Dict.empty
+        |> Dict.toList
+        |> List.filterMap (checkIsAlive aliveYs)
+        |> Set.fromList
+
+    expandedBoard =
+      let
+        currentXs =
+          Dict.keys board
+
+        maxX =
+          List.maximum currentXs
+            |> Maybe.withDefault 0
+
+        minX =
+          List.minimum currentXs
+            |> Maybe.withDefault 0
+      in
+        board
+          |> Dict.insert (maxX + 1) Set.empty
+          |> Dict.insert (minX - 1) Set.empty
+
+
+  in
+    Dict.map updateRow expandedBoard
