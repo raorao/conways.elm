@@ -174,13 +174,17 @@ generateNextBoard board =
   let
     checkIsAlive : Set CoordinateY -> (CoordinateY, Int) -> Maybe CoordinateY
     checkIsAlive aliveYs (y, neighborCount) =
-      if Set.member y aliveYs then
-        if neighborCount == 2 || neighborCount == 3 then
-          Just y
-        else
-          Nothing
-      else
-        if neighborCount == 3 then
+      let
+        isAlive =
+          Set.member y aliveYs
+
+        isSurviving =
+          isAlive && (neighborCount == 2 || neighborCount == 3)
+
+        isReturning =
+          (not isAlive) && neighborCount == 3
+      in
+        if isSurviving || isReturning then
           Just y
         else
           Nothing
