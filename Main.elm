@@ -21,6 +21,10 @@ type alias Board =
 type alias Model =
   { board: Board }
 
+type Action
+  = NoOp
+  | GenerateNext
+
 
 initialBoard : Board
 initialBoard =
@@ -35,10 +39,9 @@ initialModel : Model
 initialModel =
   { board = initialBoard }
 
-
 update action model =
-  case action.actionType of
-    "Tick" ->
+  case action of
+    GenerateNext ->
       let
         newBoard =
           generateNextBoard model.board
@@ -48,7 +51,8 @@ update action model =
 
       in
       (newModel, Effects.none)
-    _    ->
+
+    NoOp ->
       (model, Effects.none)
 
 
@@ -107,7 +111,7 @@ view actionDispatcher model =
       [ h1 [] [text "Tree of Elm Life Dot Biz"]
       , h2 [] [text "its gunna be a billyun dollar company - Srinivas The Great"]
       , generateRows,
-      button [onClick actionDispatcher {actionType = "Tick"} ] [text "Next Generation"]
+      button [onClick actionDispatcher GenerateNext ] [text "Next Generation"]
       ]
 
 type alias CounterBoard =
