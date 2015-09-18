@@ -7,7 +7,7 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (id, type', for, value, class)
 import Dict exposing (Dict)
 import Set exposing (Set)
-import Debug
+import Time
 
 type alias CoordinateX =
   Int
@@ -55,13 +55,16 @@ update action model =
     NoOp ->
       (model, Effects.none)
 
+generateSignal =
+  Time.every 100
+    |> Signal.map (always GenerateNext)
 
 app =
   StartApp.start
     { init = init
     , view = view
     , update = update
-    , inputs = []
+    , inputs = [generateSignal]
     }
 
 main =
@@ -110,8 +113,7 @@ view actionDispatcher model =
       [ class "container" ]
       [ h1 [] [text "Tree of Elm Life Dot Biz"]
       , h2 [] [text "its gunna be a billyun dollar company - Srinivas The Great"]
-      , generateRows,
-      button [onClick actionDispatcher GenerateNext ] [text "Next Generation"]
+      , generateRows
       ]
 
 type alias CounterBoard =
